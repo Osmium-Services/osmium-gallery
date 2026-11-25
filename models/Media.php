@@ -118,6 +118,30 @@ class Media extends Model
         }
     }
 
+    /** The turn (0, 90, 180 or 270 degrees clockwise) a photo's copies were built with, from its original */
+    public function rotation(array $row): int
+    {
+        $meta = \json_decode((string) ($row['meta'] ?? ''), associative: true);
+
+        return (int) ($meta['rotation'] ?? 0);
+    }
+
+    /** Records a photo's new turn and size, keeping anything else held in meta */
+    public function setRotation(int $id, int $rotation, int $width, int $height): void
+    {
+        $row = $this->getAnyById($id);
+        $meta = \json_decode((string) ($row['meta'] ?? ''), associative: true);
+        $meta = \is_array($meta) ? $meta : [];
+        $meta['rotation'] = $rotation;
+
+        $this->database->query($this->loadSqlFile('media-set-rotation.sql'));
+        $this->database->bind(param: ':id', value: $id);
+        $this->database->bind(param: ':width', value: $width);
+        $this->database->bind(param: ':height', value: $height);
+        $this->database->bind(param: ':meta', value: \json_encode($meta));
+        $this->database->execute();
+    }
+
     public function softDelete(int $id): void
     {
         $this->run(file: 'media-soft-delete.sql', id: $id);

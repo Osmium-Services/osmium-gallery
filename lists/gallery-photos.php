@@ -26,6 +26,7 @@ return [
             ['key' => 'coverBadge', 'label' => '', 'type' => 'raw', 'nowrap' => true, 'sortable' => false],
         ],
         'actions' => [
+            ['label' => 'View and turn', 'icon' => 'bx-zoom-in', 'event' => 'view_photo'],
             ['label' => 'Edit caption and alt', 'icon' => 'bx-edit-alt', 'event' => 'edit_photo'],
             [
                 'label' => 'Make cover',

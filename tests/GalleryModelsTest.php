@@ -139,4 +139,17 @@ class GalleryModelsTest extends DatabaseTestCase
 
         $this->assertSame([], $media->listAnyByAlbum($albumId));
     }
+
+    public function test_a_photos_turn_is_remembered_in_meta_with_its_new_size(): void
+    {
+        $media = new Media($this->db);
+        $id = $this->photo($this->album(), 'a', 1);
+        $this->assertSame(0, $media->rotation((array) $media->getById($id)));
+
+        $media->setRotation(id: $id, rotation: 90, width: 800, height: 1200);
+
+        $row = (array) $media->getById($id);
+        $this->assertSame(90, $media->rotation($row));
+        $this->assertSame([800, 1200], [(int) $row['width'], (int) $row['height']]);
+    }
 }

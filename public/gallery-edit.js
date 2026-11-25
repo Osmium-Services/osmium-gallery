@@ -155,4 +155,57 @@ document.addEventListener('DOMContentLoaded', function () {
         photoModal.hide();
         show('danger', result.error || 'Could not save the text');
     });
+
+    // ----- View a photo, turn it, save the turn -----
+
+    const viewModal = bootstrap.Modal.getOrCreateInstance(byId('viewModal'));
+    const viewImage = byId('viewImage');
+    let viewingId = 0;
+    let turn = 0; // Degrees clockwise on screen, not saved until Save
+
+    function showTurn() {
+        const quarter = ((turn % 360) + 360) % 360;
+        viewImage.style.transform = 'rotate(' + turn + 'deg)';
+        byId('viewStage').classList.toggle('turned-sideways', quarter === 90 || quarter === 270);
+        byId('turnSave').disabled = quarter === 0;
+    }
+
+    function openViewer(id) {
+        const photo = (window.OsmiumGalleryPhotos || {})[id];
+        if (!photo) return;
+        viewingId = id;
+        turn = 0;
+        viewImage.src = photo.viewUrl || photo.thumbUrl;
+        viewImage.alt = photo.alt || '';
+        byId('viewTitle').textContent = photo.caption || photo.alt || 'Photo';
+        showTurn();
+        viewModal.show();
+    }
+
+    document.addEventListener('list:action', function (e) {
+        if (e.detail.action === 'view_photo') openViewer(e.detail.id);
+    });
+
+    // Clicking a photo in the list or the grid opens it
+    byId('osmium-gallery-photos').addEventListener('click', function (e) {
+        const image = e.target.closest('img');
+        const row = image && image.closest('tr');
+        if (row && row.dataset.id) openViewer(Number(row.dataset.id));
+    });
+
+    byId('turnLeft').addEventListener('click', function () { turn -= 90; showTurn(); });
+    byId('turnRight').addEventListener('click', function () { turn += 90; showTurn(); });
+
+    byId('turnSave').addEventListener('click', async function () {
+        const degrees = ((turn % 360) + 360) % 360;
+        if (degrees === 0) return;
+        this.disabled = true;
+        const result = await post({ action: 'rotate_media', id: viewingId, degrees: degrees });
+        if (result.success) {
+            window.location.reload();
+            return;
+        }
+        viewModal.hide();
+        show('danger', result.error || 'Could not turn the photo');
+    });
 });

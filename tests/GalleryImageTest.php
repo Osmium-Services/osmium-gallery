@@ -81,6 +81,82 @@ class GalleryImageTest extends TestCase
         $this->assertSame('', \implode(',', \glob($this->dir() . '{thumb,medium,large,extra}/original*', \GLOB_BRACE)));
     }
 
+    public function test_the_original_keeps_its_exif_but_is_not_served_and_the_copies_carry_none(): void
+    {
+        $plain = $this->jpeg(800, 600);
+        $jpeg = (string) \file_get_contents($plain);
+        $exif = "Exif\x00\x00II*\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+        $upload = $this->root . '/with-exif.jpg';
+        \file_put_contents($upload, \substr($jpeg, 0, 2) . "\xFF\xE1" . \pack('n', \strlen($exif) + 2) . $exif . \substr($jpeg, 2));
+
+        GalleryImage::save(sourcePath: $upload, album: 'london', name: 'crowd', root: $this->root);
+
+        $this->assertStringContainsString('Exif', (string) \file_get_contents($this->dir() . 'original/crowd.jpg'));
+        $this->assertStringContainsString('Require all denied', (string) \file_get_contents($this->dir() . 'original/.htaccess'));
+        foreach (['large/crowd.jpg', 'large/webp/crowd.webp', 'large/avif/crowd.avif'] as $copy) {
+            $file = $this->dir() . $copy;
+            if (\is_file($file)) $this->assertStringNotContainsString('Exif', (string) \file_get_contents($file), $copy);
+        }
+
+        GalleryImage::remove(album: 'london', name: 'crowd', root: $this->root);
+        $this->assertDirectoryDoesNotExist($this->dir());
+    }
+
+    public function test_rebuild_turns_every_copy_from_the_original_and_leaves_the_original_alone(): void
+    {
+        $upload = $this->jpeg(800, 600);
+        GalleryImage::save(sourcePath: $upload, album: 'london', name: 'crowd', root: $this->root);
+
+        $size = GalleryImage::rebuild(album: 'london', name: 'crowd', root: $this->root, rotation: 90);
+
+        $this->assertSame(['width' => 600, 'height' => 800], $size);
+        $this->assertSame([180, 240], \array_slice(\getimagesize($this->dir() . 'thumb/crowd.jpg'), 0, 2));
+        $this->assertSame([180, 240], \array_slice(\getimagesize($this->dir() . 'thumb/webp/crowd.webp'), 0, 2));
+        $this->assertFileEquals($upload, $this->dir() . 'original/crowd.jpg');
+
+        $back = GalleryImage::rebuild(album: 'london', name: 'crowd', root: $this->root, rotation: 0);
+        $this->assertSame(['width' => 800, 'height' => 600], $back);
+        $this->assertSame(['width' => 800, 'height' => 600], GalleryImage::rebuild(album: 'london', name: 'crowd', root: $this->root, rotation: 180));
+    }
+
+    public function test_a_quarter_turn_is_clockwise(): void
+    {
+        $path = $this->root . '/corner.png';
+        $image = \imagecreatetruecolor(400, 200);
+        \imagefilledrectangle($image, 0, 0, 399, 199, (int) \imagecolorallocate($image, 255, 255, 255));
+        \imagefilledrectangle($image, 0, 0, 99, 99, (int) \imagecolorallocate($image, 255, 0, 0)); // Red top-left
+        \imagepng($image, $path);
+        GalleryImage::save(sourcePath: $path, album: 'london', name: 'corner', root: $this->root);
+
+        GalleryImage::rebuild(album: 'london', name: 'corner', root: $this->root, rotation: 90);
+
+        $turned = \imagecreatefromjpeg($this->dir() . 'extra/corner.jpg'); // 200 wide, 400 tall now
+        $topRight = \imagecolorat($turned, 190, 10);
+        $topLeft = \imagecolorat($turned, 10, 10);
+        $this->assertGreaterThan(200, ($topRight >> 16) & 0xFF);
+        $this->assertLessThan(80, ($topRight >> 8) & 0xFF); // Red is now top-right
+        $this->assertGreaterThan(200, ($topLeft >> 8) & 0xFF); // And top-left is white
+    }
+
+    public function test_rebuild_refuses_a_photo_with_no_original_or_an_unsafe_name(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        GalleryImage::rebuild(album: 'london', name: '../crowd', root: $this->root, rotation: 90);
+    }
+
+    public function test_saving_a_name_again_replaces_every_copy_including_webp_and_avif(): void
+    {
+        GalleryImage::save(sourcePath: $this->jpeg(800, 600), album: 'london', name: 'crowd', root: $this->root);
+        $old = $this->dir() . 'thumb/webp/crowd.webp';
+        $this->assertSame([240, 180], \array_slice(\getimagesize($old), 0, 2));
+
+        GalleryImage::save(sourcePath: $this->jpeg(600, 800), album: 'london', name: 'crowd', root: $this->root);
+
+        $this->assertSame([180, 240], \array_slice(\getimagesize($this->dir() . 'thumb/webp/crowd.webp'), 0, 2));
+        $this->assertSame([180, 240], \array_slice(\getimagesize($this->dir() . 'thumb/crowd.jpg'), 0, 2));
+    }
+
     public function test_a_photo_over_the_pixel_limit_is_refused_with_words_and_leaves_nothing_behind(): void
     {
         $path = $this->root . '/huge.png';
@@ -135,6 +211,9 @@ class GalleryImageTest extends TestCase
     {
         GalleryImage::save(sourcePath: $this->jpeg(800, 600), album: 'london', name: 'one', root: $this->root);
         GalleryImage::save(sourcePath: $this->jpeg(800, 600), album: 'london', name: 'two', root: $this->root);
+
+        \file_put_contents($this->dir() . 'original/stray.txt', 'x');
+        \file_put_contents($this->dir() . 'large/avif/.DS_Store', 'x');
 
         GalleryImage::removeAlbum(album: 'london', root: $this->root);
 

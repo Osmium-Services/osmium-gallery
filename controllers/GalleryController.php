@@ -121,6 +121,7 @@ class GalleryController extends AdminController
             'move_earlier' => $this->moveMedia(id: $id, step: -1),
             'move_later' => $this->moveMedia(id: $id, step: 1),
             'set_cover' => $this->setCover($id),
+            'rotate_media' => $this->rotateMedia(id: $id, degrees: (int) ($input['degrees'] ?? 0)),
             'update_media' => $this->updateMedia(id: $id, input: $input),
             'delete_media' => $this->deleteMedia($id),
             'restore_media' => $this->restoreMedia($id),
@@ -322,6 +323,25 @@ class GalleryController extends AdminController
         return ['success' => true, 'id' => $id];
     }
 
+    /** Turns a photo clockwise by 90, 180 or 270 degrees: every copy is rebuilt from the untouched original */
+    private function rotateMedia(int $id, int $degrees): array
+    {
+        $allowed = \in_array($degrees, [90, 180, 270], true);
+        if (!$allowed) throw new \InvalidArgumentException('Turn a photo by 90, 180 or 270 degrees');
+
+        $media = new Media($this->osmium->dataSource);
+        $item = $media->getById($id);
+        $album = $item ? (new Album($this->osmium->dataSource))->getById((int) $item['album_id']) : null;
+        if (!$album) throw new \InvalidArgumentException('Photo not found');
+
+        $total = ($media->rotation($item) + $degrees) % 360;
+        $size = GalleryImage::rebuild(album: $album['slug'], name: $item['file_name'], root: $this->root(), rotation: $total);
+        $media->setRotation(id: $id, rotation: $total, width: $size['width'], height: $size['height']);
+        $this->logChange(action: 'Turned photo ' . $item['file_name'] . ' in', id: (int) $album['id'], name: $album['name']);
+
+        return ['success' => true, 'id' => $id];
+    }
+
     private function deleteMedia(int $id): array
     {
         $media = new Media($this->osmium->dataSource);
@@ -453,7 +473,15 @@ class GalleryController extends AdminController
         $noCover = empty($row['cover_file']);
         if ($noCover) return '';
 
-        return $this->osmium->imagePath('/gallery/' . $row['slug'] . '/' . $size . '/' . $row['cover_file']);
+        return $this->stamped($this->osmium->imagePath('/gallery/' . $row['slug'] . '/' . $size . '/' . $row['cover_file']));
+    }
+
+    /** An image address with its file's modified time, because images are cached for a year and a rebuilt photo must reload */
+    private function stamped(string $url): string
+    {
+        $mtime = $url === '' ? false : @\filemtime($this->root() . $url);
+
+        return $mtime === false ? $url : $url . '?v=' . $mtime;
     }
 
     /**
@@ -476,7 +504,7 @@ class GalleryController extends AdminController
 
     private function formatMedia(array $item, array $album): array
     {
-        $thumb = $this->osmium->imagePath('/gallery/' . $album['slug'] . '/thumb/' . $item['file_name']);
+        $thumb = $this->stamped($this->osmium->imagePath('/gallery/' . $album['slug'] . '/thumb/' . $item['file_name']));
 
         return [
             'id' => (int) $item['id'],
@@ -487,8 +515,9 @@ class GalleryController extends AdminController
             'width' => (int) $item['width'],
             'height' => (int) $item['height'],
             'thumbUrl' => $thumb,
+            'viewUrl' => $this->stamped($this->osmium->imagePath('/gallery/' . $album['slug'] . '/large/' . $item['file_name'])),
             'thumb_list' => $thumb,
-            'thumb_grid' => $this->osmium->imagePath('/gallery/' . $album['slug'] . '/medium/' . $item['file_name']) ?: $thumb,
+            'thumb_grid' => $this->stamped($this->osmium->imagePath('/gallery/' . $album['slug'] . '/medium/' . $item['file_name'])) ?: $thumb,
             'isCover' => (int) ($album['cover_media_id'] ?? 0) === (int) $item['id'],
         ];
     }

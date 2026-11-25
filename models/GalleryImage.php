@@ -11,7 +11,8 @@ use Osmium\Core\Library\ImageTools;
  * inside each size folder, so $osmium->imagePath('/gallery/<album>/<size>/<name>') picks the best copy. Every copy is
  * scaled to fit the size on its longest side (the photo keeps its shape, never scaled up). There is no @2x copy: a
  * srcset with width descriptors already gives retina screens the larger file. The untouched upload is kept in
- * <album>/original/<name>.<ext>; no size lookup ever reaches that folder.
+ * <album>/original/<name>.<ext>; no size lookup ever reaches that folder, and an .htaccess there refuses every request for it
+ * because the original still carries its EXIF. The size copies are re-encoded and carry none.
  */
 class GalleryImage
 {
@@ -48,11 +49,40 @@ class GalleryImage
      */
     public static function save(string $sourcePath, string $album, string $name, string $root): array
     {
-        $tools = new ImageTools();
-        $source = $tools->load(path: $sourcePath, allowedTypes: self::TYPES);
+        $source = (new ImageTools())->load(path: $sourcePath, allowedTypes: self::TYPES);
 
         $dir = $root . self::DIR . $album . '/';
         self::keepOriginal(sourcePath: $sourcePath, dir: $dir, name: $name);
+
+        return self::writeSizes(source: $source, dir: $dir, name: $name);
+    }
+
+    /**
+     * Writes every size again from the kept original, turned clockwise by $rotation degrees (0, 90, 180 or 270) on top of
+     * its own camera rotation. Always starting from the original means repeated turns never wear the picture down, and the
+     * original itself is never changed.
+     *
+     * @return array{width: int, height: int} The photo's size as turned
+     * @throws \InvalidArgumentException when the original is missing or unreadable
+     */
+    public static function rebuild(string $album, string $name, string $root, int $rotation): array
+    {
+        $unusable = !self::isValidName($album) || !self::isValidName($name);
+        $dir = $root . self::DIR . $album . '/';
+        $originals = $unusable ? [] : (\glob($dir . self::ORIGINAL . '/' . $name . '.*') ?: []);
+        if ($originals === []) throw new \InvalidArgumentException('The original photo is missing, so it cannot be turned');
+
+        $source = (new ImageTools())->load(path: $originals[0], allowedTypes: self::TYPES);
+        $turned = $rotation % 360 === 0 ? $source : (\imagerotate(image: $source, angle: -($rotation % 360), background_color: 0) ?: $source);
+
+        return self::writeSizes(source: $turned, dir: $dir, name: $name);
+    }
+
+    /** @return array{width: int, height: int} */
+    private static function writeSizes(\GdImage $source, string $dir, string $name): array
+    {
+        self::clearSizes(dir: $dir, name: $name); // The writer leaves an existing WebP or AVIF alone, so a replaced photo would keep showing the old one
+        $tools = new ImageTools();
         foreach (GalleryConfig::sizes() as $size => $side) {
             $tools->storeVariants($tools->fit($source, $side), $dir . $size, $name, self::QUALITY);
         }
@@ -74,18 +104,25 @@ class GalleryImage
         self::removeEmptyFolders($dir);
     }
 
-    /** Deletes every file of an album and its folder, for removing an album for good */
+    /** Deletes an album's whole folder (every size, WebP, AVIF and original, and anything stray), for removing an album for good */
     public static function removeAlbum(string $album, string $root): void
     {
         $unusable = !self::isValidName($album);
         if ($unusable) return;
 
-        $dir = $root . self::DIR . $album . '/';
-        foreach (\glob($dir . '*/{,webp/,avif/}*', \GLOB_BRACE) ?: [] as $path) {
-            @\unlink($path); // A folder fails quietly here and goes below once empty
+        $dir = $root . self::DIR . $album;
+        $exists = \is_dir($dir);
+        if (!$exists) return;
+
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST,
+        );
+        foreach ($items as $item) {
+            $item->isDir() ? @\rmdir($item->getPathname()) : @\unlink($item->getPathname());
         }
 
-        self::removeEmptyFolders($dir);
+        @\rmdir($dir);
     }
 
     /**
@@ -118,6 +155,19 @@ class GalleryImage
 
         $copied = \copy($sourcePath, $folder . '/' . $name . '.' . $extension);
         if (!$copied) throw new \RuntimeException('Could not save the image');
+
+        // The original keeps its EXIF (camera, date, possibly GPS), so it is never served: only the re-encoded copies are public
+        \file_put_contents($folder . '/.htaccess', "Require all denied\n");
+    }
+
+    /** Deletes the size copies of a photo (never its original), ready to be written again */
+    private static function clearSizes(string $dir, string $name): void
+    {
+        foreach (\array_keys(GalleryConfig::DEFAULT_SIZES) as $size) {
+            foreach (\glob($dir . $size . '/{,webp/,avif/}' . $name . '.*', \GLOB_BRACE) ?: [] as $path) {
+                @\unlink($path);
+            }
+        }
     }
 
     /** @return list<string> */
@@ -148,6 +198,7 @@ class GalleryImage
             }
         }
 
+        @\unlink($dir . self::ORIGINAL . '/.htaccess');
         @\rmdir($dir . self::ORIGINAL);
         @\rmdir($dir);
     }
