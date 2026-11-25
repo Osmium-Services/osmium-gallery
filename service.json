@@ -1,0 +1,67 @@
+{
+    "id": "osmium-gallery",
+    "name": "Osmium Gallery",
+    "version": "0.3.0",
+    "description": "Albums of photos managed in admin, stored and optimised for a theme to show in any layout",
+    "category": "content",
+    "author": {
+        "name": "Gavin Cox"
+    },
+    "license": "proprietary",
+    "requires": {
+        "osmium": ">=2.4.0",
+        "php": ">=8.1",
+        "services": []
+    },
+    "autoload": [
+        "models"
+    ],
+    "migrations": "migrations/",
+    "admin": {
+        "menu": {
+            "section": "Content",
+            "items": [
+                {
+                    "id": "osmium-gallery",
+                    "label": "Gallery",
+                    "icon": "bx bx-photo-album",
+                    "route": "admin/gallery",
+                    "activePattern": "admin/gallery*",
+                    "color": "#e83e8c",
+                    "placement": "group",
+                    "group": "content",
+                    "order": 25,
+                    "role": null
+                }
+            ]
+        },
+        "routes": {
+            "admin/gallery": {
+                "controller": "controllers/GalleryController.php",
+                "class": "Osmium\\Services\\OsmiumGallery\\Controllers\\GalleryController",
+                "method": "index",
+                "title": "Osmium Gallery"
+            },
+            "admin/gallery/add": {
+                "controller": "controllers/GalleryController.php",
+                "class": "Osmium\\Services\\OsmiumGallery\\Controllers\\GalleryController",
+                "method": "add",
+                "title": "New Album"
+            },
+            "admin/gallery/edit": {
+                "controller": "controllers/GalleryController.php",
+                "class": "Osmium\\Services\\OsmiumGallery\\Controllers\\GalleryController",
+                "method": "edit",
+                "title": "Edit Album"
+            },
+            "admin/gallery/action": {
+                "controller": "controllers/GalleryController.php",
+                "class": "Osmium\\Services\\OsmiumGallery\\Controllers\\GalleryController",
+                "method": "action"
+            }
+        }
+    },
+    "setup": {
+        "postInstallNote": "Create an album on Content > Gallery, drop photos into it and publish it. The service ships no markup and no route: a theme controller reads the published albums with $gallery = new \\Osmium\\Services\\OsmiumGallery\\Models\\Gallery($this->osmium->dataSource, $this->osmium->imagePath(...)); $gallery->albums(), $gallery->album('slug'), $gallery->media($albumId) and $gallery->byYear($gallery->albums()). Each photo has src, srcset, width, height, alt, caption and type. Photos are saved in assets/images/gallery/<album>/<size>/ (thumb 240, medium 600, large 1200, extra 1920 on the long edge) with the untouched upload in <album>/original/. The server needs AddType image/avif .avif in .htaccess."
+    }
+}

@@ -1,0 +1,10 @@
+<div class="d-flex justify-content-between align-items-center py-3 mb-4">
+    <h4 class="mb-0"><span class="text-muted fw-light"><a href="<?= $adminUrl('gallery/') ?>">Osmium Gallery</a> /</span> New Album</h4>
+    <a href="<?= $adminUrl('gallery/') ?>" class="btn btn-label-secondary">
+        <i class="bx bx-arrow-back me-1"></i> All albums
+    </a>
+</div>
+
+<?php include __DIR__ . '/form.phtml'; ?>
+
+<script src="/assets/services/osmium-gallery/gallery-edit.js<?= $adminAssetVersion('/assets/services/osmium-gallery/gallery-edit.js') ?>"></script>

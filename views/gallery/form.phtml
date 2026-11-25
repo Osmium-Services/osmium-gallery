@@ -1,0 +1,38 @@
+<?php
+/** The album form, shared by add.phtml and edit.phtml. Expects $admin, $adminUrl and $adminAssetVersion from the view. */
+$album = $admin['album'];
+?>
+<div id="galleryResult" class="alert d-none"></div>
+
+<form id="albumForm" autocomplete="off" class="card mb-4">
+    <input type="hidden" id="albumId" value="<?= (int) $album['id'] ?>">
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="form-label" for="albumName">Name</label>
+            <input type="text" class="form-control" id="albumName" maxlength="150" required value="<?= \htmlspecialchars($album['name']) ?>">
+            <?php if ($album['id']): ?><div class="form-text">Address name: <code><?= \htmlspecialchars($album['slug']) ?></code> (set when the album was created and kept, because the photos' folder and the site use it).</div><?php endif; ?>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="albumDate">Event date (optional)</label>
+            <input type="date" class="form-control" id="albumDate" value="<?= \htmlspecialchars($album['eventDate']) ?>">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="albumBlurb">Description (optional)</label>
+            <textarea class="form-control" id="albumBlurb" rows="3" maxlength="5000"><?= \htmlspecialchars($album['blurb']) ?></textarea>
+        </div>
+        <?php if (!$album['id']): ?>
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="albumPublished">
+            <label class="form-check-label" for="albumPublished">Published</label>
+        </div>
+        <?php endif; ?>
+        <button type="submit" class="btn btn-primary" id="albumSaveButton">Save album</button>
+    </div>
+</form>
+
+<script nonce="<?= $cspNonce ?? '' ?>">
+    window.OsmiumGalleryConfig = {
+        basePath: adminBasePath,
+        editUrl: <?= \json_encode($adminUrl('gallery/edit/')) ?>
+    };
+</script>

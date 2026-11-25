@@ -1,0 +1,3 @@
+.gallery-drop { border: 2px dashed var(--bs-border-color, #d9dee3); border-radius: .5rem; padding: 2rem; text-align: center; cursor: pointer; }
+.gallery-drop i { font-size: 2rem; }
+.gallery-drop.drag-active { border-color: var(--bs-primary, #696cff); background: rgba(105, 108, 255, .06); }
