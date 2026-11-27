@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Grid (card) layout for the Albums list, rendered by Osmium\Modules\Admin\Core\ListViewGrid. Columns use the same
- * vocabulary as lists/gallery.php but nothing is shared with it. The actions are a copy of the list's.
+ * vocabulary as lists/gallery.php but nothing is shared with it. The actions are a copy of the list's, except Delete, which is the card's red corner button.
  */
 return [
     'columns' => 3,
@@ -15,6 +15,13 @@ return [
         ['key' => 'statusBadge', 'type' => 'raw'],
         ['key' => 'eventDate', 'type' => 'text', 'small' => true],
         ['key' => 'itemCountText', 'type' => 'text', 'small' => true],
+    ],
+    'cornerAction' => [
+        'label' => 'Delete',
+        'icon' => 'bx-trash',
+        'action' => 'delete',
+        'confirm' => 'Delete this album? It can be restored from Deleted Albums.',
+        'danger' => true,
     ],
     'actionsAt' => 'bottom-end',
     'actions' => [
@@ -30,13 +37,6 @@ return [
             'icon' => 'bx-hide',
             'action' => 'unpublish',
             'visible' => fn(array $row, array $context): bool => (bool) $row['published'],
-        ],
-        [
-            'label' => 'Delete',
-            'icon' => 'bx-trash',
-            'action' => 'delete',
-            'confirm' => 'Delete this album? It can be restored from Deleted Albums.',
-            'danger' => true,
         ],
     ],
 ];

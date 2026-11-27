@@ -118,7 +118,7 @@ class GalleryController extends AdminController
             'permanently_delete' => $this->permanentlyDeleteAlbum($id),
             'purge_deleted' => $this->purgeDeleted(),
             'upload' => $this->upload($id),
-            'move_media' => $this->moveMedia(id: $id, afterId: (int) ($input['after'] ?? 0), beforeId: (int) ($input['before'] ?? 0)),
+            'reorder' => $this->moveMedia(id: $id, afterId: (int) ($input['after'] ?? 0), beforeId: (int) ($input['before'] ?? 0)),
             'set_cover' => $this->setCover($id),
             'rotate_media' => $this->rotateMedia(id: $id, degrees: (int) ($input['degrees'] ?? 0)),
             'update_media' => $this->updateMedia(id: $id, input: $input),
@@ -499,7 +499,6 @@ class GalleryController extends AdminController
         $rows = [];
         foreach ($photos as $item) {
             $row = $this->formatMedia(item: $item, album: $album);
-            $row['dragHandle'] = '<span class="drag-handle" title="Drag to reorder"><i class="bx bx-menu"></i></span>';
             $row['coverBadge'] = $row['isCover'] ? '<span class="badge bg-label-primary">Cover</span>' : '';
             $rows[] = $row;
         }

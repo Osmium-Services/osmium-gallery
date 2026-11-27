@@ -18,9 +18,9 @@ return [
         'note' => 'Shown in this order. The cover is the album\'s picture in lists; an album with no cover uses its first photo.',
         'emptyText' => 'No photos yet - drop some above.',
         'order' => null, // Server order: display order
+        'orderable' => true,
         'grid' => require __DIR__ . '/../grids/gallery-photos.php',
         'columns' => [
-            ['key' => 'dragHandle', 'label' => '', 'type' => 'raw', 'nowrap' => true, 'sortable' => false],
             ['key' => 'thumb_list', 'label' => '', 'type' => 'image', 'altKey' => 'alt', 'sortable' => false],
             ['key' => 'caption', 'label' => 'Caption', 'type' => 'text', 'strong' => true, 'fill' => true, 'fallback' => 'No caption'],
             ['key' => 'alt', 'label' => 'Alt text', 'type' => 'text', 'hideBelow' => 'md'],

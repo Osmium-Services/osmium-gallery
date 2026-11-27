@@ -193,32 +193,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (row && row.dataset.id) openViewer(Number(row.dataset.id));
     });
 
-    // ----- Drag a photo (row or card) to a new place; the server places it by the neighbour it landed next to, then the page reloads -----
-
-    const photoTable = byId('osmium-gallery-photos');
-    const sorter = Sortable.create(photoTable.querySelector('tbody'), {
-        animation: 150,
-        draggable: 'tr[data-id]',
-        handle: '.drag-handle',
-        onEnd: async function (e) {
-            if (e.oldIndex === e.newIndex) return;
-            // Anchor on the photo before it; at the top of a page or search result there is none in view, so use the one after
-            const previous = e.item.previousElementSibling;
-            const next = e.item.nextElementSibling;
-            const anchor = previous ? { after: previous.dataset.id } : { before: next ? next.dataset.id : 0 };
-            const result = await post(Object.assign({ action: 'move_media', id: e.item.dataset.id }, anchor));
-            if (result.success) {
-                window.location.reload();
-                return;
-            }
-            show('danger', result.error || 'Could not move the photo');
-        }
-    });
-    // A column sort puts the rows in a different order from the album's, so dragging only makes sense with none
-    $(photoTable).on('order.dt', function () {
-        sorter.option('disabled', $(photoTable).DataTable().order().length > 0);
-    });
-
     byId('turnLeft').addEventListener('click', function () { turn -= 90; showTurn(); });
     byId('turnRight').addEventListener('click', function () { turn += 90; showTurn(); });
 
