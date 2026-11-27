@@ -12,6 +12,7 @@ return [
     'image' => ['key' => 'thumb_grid', 'type' => 'image', 'altKey' => 'alt'],
     'title' => ['key' => 'caption', 'type' => 'text', 'strong' => true, 'fallback' => 'No caption'],
     'meta' => [
+        ['key' => 'dragHandle', 'type' => 'raw'],
         ['key' => 'coverBadge', 'type' => 'raw'],
     ],
     'actionsAt' => 'bottom-end',
@@ -23,18 +24,6 @@ return [
             'icon' => 'bx-star',
             'action' => 'set_cover',
             'visible' => fn(array $row, array $context): bool => !$row['isCover'],
-        ],
-        [
-            'label' => 'Move earlier',
-            'icon' => 'bx-up-arrow-alt',
-            'action' => 'move_earlier',
-            'visible' => fn(array $row, array $context): bool => !$row['isFirst'],
-        ],
-        [
-            'label' => 'Move later',
-            'icon' => 'bx-down-arrow-alt',
-            'action' => 'move_later',
-            'visible' => fn(array $row, array $context): bool => !$row['isLast'],
         ],
         [
             'label' => 'Delete',

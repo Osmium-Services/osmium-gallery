@@ -5,5 +5,22 @@
     </a>
 </div>
 
-<?php include __DIR__ . '/form.phtml'; ?>
+<div class="row gallery-top">
+    <div class="col-md-6 mb-4">
+        <?php include __DIR__ . '/form.phtml'; ?>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card mb-4">
+            <div class="card-body gallery-drop-body">
+                <div class="gallery-drop" id="galleryDrop">
+                    <i class="bx bx-cloud-upload"></i>
+                    <p class="mb-0 mt-2 fw-medium">Drag &amp; drop photos here, or click to choose</p>
+                    <small class="text-muted">JPG, PNG or WebP, up to <?= \htmlspecialchars($admin['maxUpload']) ?> each</small>
+                    <input type="file" class="d-none" id="galleryFiles" accept="image/jpeg,image/png,image/webp" multiple>
+                </div>
+                <ul class="list-unstyled small mt-3 mb-0" id="uploadLog"></ul>
+            </div>
+        </div>
+    </div>
+</div>
 <?php include __DIR__ . '/photos.phtml'; ?>

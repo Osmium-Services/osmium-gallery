@@ -20,6 +20,7 @@ return [
         'order' => null, // Server order: display order
         'grid' => require __DIR__ . '/../grids/gallery-photos.php',
         'columns' => [
+            ['key' => 'dragHandle', 'label' => '', 'type' => 'raw', 'nowrap' => true, 'sortable' => false],
             ['key' => 'thumb_list', 'label' => '', 'type' => 'image', 'altKey' => 'alt', 'sortable' => false],
             ['key' => 'caption', 'label' => 'Caption', 'type' => 'text', 'strong' => true, 'fill' => true, 'fallback' => 'No caption'],
             ['key' => 'alt', 'label' => 'Alt text', 'type' => 'text', 'hideBelow' => 'md'],
@@ -33,18 +34,6 @@ return [
                 'icon' => 'bx-star',
                 'action' => 'set_cover',
                 'visible' => fn(array $row, array $context): bool => !$row['isCover'],
-            ],
-            [
-                'label' => 'Move earlier',
-                'icon' => 'bx-up-arrow-alt',
-                'action' => 'move_earlier',
-                'visible' => fn(array $row, array $context): bool => !$row['isFirst'],
-            ],
-            [
-                'label' => 'Move later',
-                'icon' => 'bx-down-arrow-alt',
-                'action' => 'move_later',
-                'visible' => fn(array $row, array $context): bool => !$row['isLast'],
             ],
             [
                 'label' => 'Delete',

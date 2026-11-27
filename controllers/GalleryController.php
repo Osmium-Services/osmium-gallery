@@ -118,8 +118,7 @@ class GalleryController extends AdminController
             'permanently_delete' => $this->permanentlyDeleteAlbum($id),
             'purge_deleted' => $this->purgeDeleted(),
             'upload' => $this->upload($id),
-            'move_earlier' => $this->moveMedia(id: $id, step: -1),
-            'move_later' => $this->moveMedia(id: $id, step: 1),
+            'move_media' => $this->moveMedia(id: $id, afterId: (int) ($input['after'] ?? 0), beforeId: (int) ($input['before'] ?? 0)),
             'set_cover' => $this->setCover($id),
             'rotate_media' => $this->rotateMedia(id: $id, degrees: (int) ($input['degrees'] ?? 0)),
             'update_media' => $this->updateMedia(id: $id, input: $input),
@@ -282,19 +281,25 @@ class GalleryController extends AdminController
     }
 
     /** Swaps a photo with its neighbour in the album's display order */
-    private function moveMedia(int $id, int $step): array
+    /**
+     * Puts a photo straight after $afterId, or straight before $beforeId when there is no photo to go after (dragged to the
+     * top of a page or a search result, where the photo before it is out of view). Neither: first in the album.
+     */
+    private function moveMedia(int $id, int $afterId, int $beforeId): array
     {
         $media = new Media($this->osmium->dataSource);
         $item = $media->getById($id);
         if (!$item) throw new \InvalidArgumentException('Photo not found');
 
         $ids = \array_map('intval', \array_column($media->listByAlbum((int) $item['album_id']), 'id'));
-        $from = (int) \array_search($id, $ids, true);
-        $to = $from + $step;
-        $atEnd = $to < 0 || $to >= \count($ids);
-        if ($atEnd) return ['success' => true];
+        $anchor = $afterId ?: $beforeId;
+        if ($anchor !== 0 && !\in_array($anchor, $ids, true)) throw new \InvalidArgumentException('Photo not found');
+        if ($anchor === $id) return ['success' => true];
 
-        [$ids[$from], $ids[$to]] = [$ids[$to], $ids[$from]];
+        $ids = \array_values(\array_diff($ids, [$id]));
+        $position = 0;
+        if ($anchor !== 0) $position = (int) \array_search($anchor, $ids, true) + ($afterId ? 1 : 0);
+        \array_splice($ids, $position, 0, [$id]);
         $media->reorder(albumId: (int) $item['album_id'], orderedIds: $ids);
 
         return ['success' => true];
@@ -459,6 +464,7 @@ class GalleryController extends AdminController
             'published' => (bool) $row['published'],
             'coverId' => (int) ($row['cover_media_id'] ?? 0),
             'photoCount' => (int) ($row['media_count'] ?? 0),
+            'itemCountText' => (int) ($row['media_count'] ?? 0) . ((int) ($row['media_count'] ?? 0) === 1 ? ' item' : ' items'),
             'sortOrder' => (int) $row['sort_order'],
             'thumb_list' => $this->albumThumb(row: $row, size: 'thumb'),
             'thumb_grid' => $this->albumThumb(row: $row, size: 'medium'),
@@ -486,15 +492,14 @@ class GalleryController extends AdminController
 
     /**
      * @param list<array<string, mixed>> $photos
-     * @return list<array<string, mixed>> Rows for the photos lists, with first/last so the move actions hide at the ends
+     * @return list<array<string, mixed>> Rows for the photos lists, 
      */
     private function photoRows(array $photos, array $album): array
     {
         $rows = [];
-        foreach (\array_values($photos) as $index => $item) {
+        foreach ($photos as $item) {
             $row = $this->formatMedia(item: $item, album: $album);
-            $row['isFirst'] = $index === 0;
-            $row['isLast'] = $index === \count($photos) - 1;
+            $row['dragHandle'] = '<span class="drag-handle" title="Drag to reorder"><i class="bx bx-menu"></i></span>';
             $row['coverBadge'] = $row['isCover'] ? '<span class="badge bg-label-primary">Cover</span>' : '';
             $rows[] = $row;
         }

@@ -14,7 +14,7 @@ return [
     'meta' => [
         ['key' => 'statusBadge', 'type' => 'raw'],
         ['key' => 'eventDate', 'type' => 'text', 'small' => true],
-        ['key' => 'photoCount', 'type' => 'text', 'small' => true],
+        ['key' => 'itemCountText', 'type' => 'text', 'small' => true],
     ],
     'actionsAt' => 'bottom-end',
     'actions' => [

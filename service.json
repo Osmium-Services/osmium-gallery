@@ -1,7 +1,7 @@
 {
     "id": "osmium-gallery",
     "name": "Osmium Gallery",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "description": "Albums of photos managed in admin, stored and optimised for a theme to show in any layout",
     "category": "content",
     "author": {

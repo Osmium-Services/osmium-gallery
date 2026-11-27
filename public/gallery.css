@@ -1,3 +1,6 @@
+.gallery-top .card { margin-bottom: 0 !important; height: 100%; } /* Form and drop zone side by side, stacked below md */
+.gallery-top .gallery-drop-body { display: flex; flex-direction: column; }
+.gallery-top .gallery-drop { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
 .gallery-drop { border: 2px dashed var(--bs-border-color, #d9dee3); border-radius: .5rem; padding: 2rem; text-align: center; cursor: pointer; }
 .gallery-drop i { font-size: 2rem; }
 .gallery-drop.drag-active { border-color: var(--bs-primary, #696cff); background: rgba(105, 108, 255, .06); }
@@ -6,3 +9,5 @@
 .gallery-stage img { max-width: 100%; max-height: 100%; transition: transform .2s; }
 .gallery-stage.turned-sideways img { max-width: 70vh; max-height: 60vw; }
 td img, .grid-card-image img { cursor: zoom-in; }
+#osmium-gallery-photos .drag-handle { cursor: grab; color: #6c757d; padding: .25rem; }
+#osmium-gallery-photos .drag-handle:active { cursor: grabbing; }
